@@ -13,7 +13,8 @@ jobs:
         run: |
           rm -rf android
           flutter create /tmp/fresh --project-name securecrypt --org com.securecrypt.app --platforms android
-          cp -r /tmp/fresh/android./android
+          mv /tmp/fresh/android.
+          ls android
       - name: Inject code
         run: |
           cat > pubspec.yaml << 'YAML'
