@@ -9,6 +9,13 @@ jobs:
         with:
           flutter-version: '3.22.3'
           channel: 'stable'
+      - run: |
+          if [! -d "android" ]; then
+            flutter create. --project-name securecrypt --org com.securecrypt.app
+          fi
+          rm -f lib/main.dart
+          mkdir -p lib
+          cp -r.github/workflows/main.dart lib/main.dart || true
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
