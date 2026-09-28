@@ -7,7 +7,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
+          flutter-version: '3.22.3'
           channel: 'stable'
       - name: Create
         run: |
@@ -15,28 +15,29 @@ jobs:
           flutter create /tmp/f --project-name securecrypt --org com.securecrypt.app --platforms android
           mv /tmp/f/android $PWD
           sed -i 's/label="securecrypt"/label="SecureCrypt.com"/' android/app/src/main/AndroidManifest.xml
-          sed -i '/<application/i \ <uses-permission android:name="android.permission.RECORD_AUDIO" />' android/app/src/main/AndroidManifest.xml
-      - name: Write pubspec
+          sed -i '/<application/i \ <uses-permission android:name="android.permission.RECORD_AUDIO" />\n <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' android/app/src/main/AndroidManifest.xml
+          cat android/app/src/main/AndroidManifest.xml | grep -A2 permission
+      - name: Write pubspec FIXED
         run: |
           cat > pubspec.yaml << 'YAML'
           name: securecrypt
           publish_to: 'none'
-          version: 1.0.0+12
+          version: 1.0.0+13
           environment:
-            sdk: '>=3.2.0 <4.0.0'
+            sdk: '>=3.0.0 <4.0.0'
           dependencies:
             flutter:
               sdk: flutter
-            record: ^6.1.1
-            just_audio: ^0.9.46
-            path_provider: ^2.1.5
-            permission_handler: ^11.3.1
-            file_picker: ^8.1.6
-            share_plus: ^10.1.2
+            record: 5.0.4
+            just_audio: 0.9.36
+            path_provider: 2.1.1
+            permission_handler: 11.0.1
+            file_picker: 6.1.1
+            share_plus: 7.2.1
           flutter:
             uses-material-design: true
           YAML
-      - name: Write main FINAL
+      - name: Write main
         run: |
           mkdir -p lib
           cat > lib/main.dart << 'DART'
@@ -44,23 +45,23 @@ jobs:
           void main()=>runApp(const MyApp());
           class MyApp extends StatelessWidget{const MyApp({super.key}); @override Widget build(BuildContext c)=>MaterialApp(debugShowCheckedModeBanner:false, theme:ThemeData.dark().copyWith(scaffoldBackgroundColor:const Color(0xFF0F0F0F)), home:const Pin());}
           class Pin extends StatefulWidget{const Pin({super.key}); @override State<Pin> createState()=>_P();}
-          class _P extends State<Pin>{final ctrl=TextEditingController(); void go(){ final p=ctrl.text.trim(); if(p=='123456') Navigator.pushReplacement(context, MaterialPageRoute(builder:(_)=>const Home(fake:false))); else if(p=='000000') Navigator.pushReplacement(context, MaterialPageRoute(builder:(_)=>const Home(fake:true)));} @override Widget build(BuildContext c)=>Scaffold(body:Center(child:Padding(padding:const EdgeInsets.all(32), child:Column(mainAxisAlignment:MainAxisAlignment.center, children:[const Icon(Icons.lock_outline,size:80,color:Color(0xFF00FF88)), const SizedBox(height:20), const Text("SecureCrypt.com",style:TextStyle(fontSize:26,fontWeight:FontWeight.bold)), const SizedBox(height:30), TextField(controller:ctrl, obscureText:true, keyboardType:TextInputType.number, textAlign:TextAlign.center, decoration:InputDecoration(hintText:"PIN 123456 / 000000 fake", border:OutlineInputBorder(borderRadius:BorderRadius.circular(12))), onSubmitted:(_)=>go()), const SizedBox(height:20), SizedBox(width:double.infinity, child:ElevatedButton(onPressed:go, style:ElevatedButton.styleFrom(backgroundColor:const Color(0xFF00FF88), foregroundColor:Colors.black), child:const Text("SBLOCCA")))]))));}
+          class _P extends State<Pin>{final ctrl=TextEditingController(); void go(){ final p=ctrl.text.trim(); if(p=='123456') Navigator.pushReplacement(context, MaterialPageRoute(builder:(_)=>const Home(fake:false))); else if(p=='000000') Navigator.pushReplacement(context, MaterialPageRoute(builder:(_)=>const Home(fake:true)));} @override Widget build(BuildContext c)=>Scaffold(body:Center(child:Padding(padding:const EdgeInsets.all(32), child:Column(mainAxisAlignment:MainAxisAlignment.center, children:[const Icon(Icons.lock_outline,size:80,color:Color(0xFF00FF88)), const Text("SecureCrypt.com",style:TextStyle(fontSize:26,fontWeight:FontWeight.bold)), const SizedBox(height:20), TextField(controller:ctrl, obscureText:true, keyboardType:TextInputType.number, textAlign:TextAlign.center, decoration:InputDecoration(hintText:"PIN", border:OutlineInputBorder(borderRadius:BorderRadius.circular(12))), onSubmitted:(_)=>go()), const SizedBox(height:20), SizedBox(width:double.infinity, child:ElevatedButton(onPressed:go, style:ElevatedButton.styleFrom(backgroundColor:const Color(0xFF00FF88), foregroundColor:Colors.black), child:const Text("SBLOCCA")))]))));}
           class GhostMsg{String t; int ttl; Timer? tm; GhostMsg(this.t,this.ttl);}
           class Home extends StatefulWidget{final bool fake; const Home({super.key, required this.fake}); @override State<Home> createState()=>_H();}
           class _H extends State<Home> with SingleTickerProviderStateMixin{
             late TabController tab; final rec=AudioRecorder(); final player=AudioPlayer(); bool isRec=false; List<File> files=[]; String vpath=''; double pitch=1.0; String vname="Normale"; File? lastRec; List<GhostMsg> chats=[]; final chatC=TextEditingController(); int ttl=30;
             @override void initState(){super.initState(); tab=TabController(length:4, vsync:this); initV();}
             Future<void> initV() async { await Permission.microphone.request(); await Permission.storage.request(); final d=await getApplicationDocumentsDirectory(); final vd=Directory('${d.path}/vault'); if(!await vd.exists()) await vd.create(recursive:true); vpath=vd.path; refresh(); }
-            void refresh(){ if(vpath.isEmpty) return; setState(()=>files=Directory(vpath).listSync().where((f)=>f is File).map((f)=>f as File).toList()..sort((a,b)=>b.lastModifiedSync().compareTo(a.lastModifiedSync()))); }
+            void refresh(){ if(vpath.isEmpty) return; setState(()=>files=Directory(vpath).listSync().where((f)=>f is File).map((f)=>f as File).toList()); }
             Future<void> toggleRec() async { if(isRec){ final p=await rec.stop(); setState(()=>isRec=false); if(p!=null) lastRec=File(p); refresh(); } else { if(await rec.hasPermission()){ final path='${vpath}/rec_${DateTime.now().millisecondsSinceEpoch}.m4a'; await rec.start(const RecordConfig(), path:path); setState(()=>isRec=true);} } }
             Future<void> playVoice(File f) async { await player.stop(); await player.setFilePath(f.path); await player.setSpeed(pitch); await player.play(); }
             void setVoice(double p,String n){ setState(()=>{pitch=p, vname=n}); if(player.playing) player.setSpeed(p); }
             void sendGhost(){ if(chatC.text.trim().isEmpty) return; final m=GhostMsg(chatC.text.trim(), ttl); setState(()=>{chats.insert(0,m), chatC.clear()}); m.tm=Timer.periodic(const Duration(seconds:1),(t){ m.ttl--; if(m.ttl<=0){ t.cancel(); setState(()=>chats.remove(m)); } else setState((){}); }); }
             @override Widget build(BuildContext c){
-              if(widget.fake) return Scaffold(appBar:AppBar(title:const Text("Calculator")), body:const Center(child:Text("Nessun file")));
-              return Scaffold(appBar:AppBar(title:const Text("SecureCrypt.com"), bottom:TabBar(controller:tab, isScrollable:true, tabs:const[Tab(icon:Icon(Icons.mic), text:"Ghost"), Tab(icon:Icon(Icons.graphic_eq), text:"Voce"), Tab(icon:Icon(Icons.timer_off), text:"Chat Ghost"), Tab(icon:Icon(Icons.folder), text:"Vault")])), body:TabBarView(controller:tab, children:[
-                Center(child:Column(mainAxisAlignment:MainAxisAlignment.center, children:[Icon(isRec?Icons.mic:Icons.mic_none, size:90, color:isRec?Colors.red:const Color(0xFF00FF88)), const SizedBox(height:10), Text(isRec?"REGISTRAZIONE NASCOSTA ATTIVA":"Tocca per registrare ghost", style:TextStyle(color:isRec?Colors.red:Colors.white)), const SizedBox(height:30), GestureDetector(onTap:toggleRec, child:Container(width:90,height:90, decoration:BoxDecoration(color:isRec?Colors.red:const Color(0xFF00FF88), shape:BoxShape.circle), child:Icon(isRec?Icons.stop:Icons.mic, size:40, color:Colors.black)))])),
-                Padding(padding:const EdgeInsets.all(16), child:Column(children:[Wrap(spacing:8, runSpacing:8, children:[for(final e in [{"n":"Normale","p":1.0},{"n":"Profonda","p":0.7},{"n":"Acuta","p":1.4},{"n":"Robot","p":0.85},{"n":"Gigante","p":0.6},{"n":"Scoiattolo","p":1.8}]) ChoiceChip(label:Text(e["n"] as String), selected:pitch==e["p"], selectedColor:const Color(0xFF00FF88), onSelected:(_)=>setVoice(e["p"] as double, e["n"] as String))]), const SizedBox(height:20), Text("Voce: $vname ${pitch}x"), const Spacer(), if(lastRec!=null) SizedBox(width:double.infinity, child:ElevatedButton.icon(onPressed:()=>playVoice(lastRec!), icon:const Icon(Icons.play_arrow), label:Text("Prova $vname"), style:ElevatedButton.styleFrom(backgroundColor:const Color(0xFF00FF88), foregroundColor:Colors.black)))])),
+              if(widget.fake) return Scaffold(appBar:AppBar(title:const Text("Calculator")), body:const Center(child:Text("Vuoto")));
+              return Scaffold(appBar:AppBar(title:const Text("SecureCrypt.com"), bottom:TabBar(controller:tab, isScrollable:true, tabs:const[Tab(icon:Icon(Icons.mic), text:"Ghost"), Tab(icon:Icon(Icons.graphic_eq), text:"Voce"), Tab(icon:Icon(Icons.timer_off), text:"Chat"), Tab(icon:Icon(Icons.folder), text:"Vault")])), body:TabBarView(controller:tab, children:[
+                Center(child:Column(mainAxisAlignment:MainAxisAlignment.center, children:[Icon(isRec?Icons.mic:Icons.mic_none, size:90, color:isRec?Colors.red:const Color(0xFF00FF88)), const SizedBox(height:10), Text(isRec?"REGISTRO SEGRETO ON":"Tocca per ghost rec"), const SizedBox(height:30), GestureDetector(onTap:toggleRec, child:Container(width:90,height:90, decoration:BoxDecoration(color:isRec?Colors.red:const Color(0xFF00FF88), shape:BoxShape.circle), child:Icon(isRec?Icons.stop:Icons.mic, size:40, color:Colors.black)))])),
+                Padding(padding:const EdgeInsets.all(16), child:Column(children:[Wrap(spacing:8, runSpacing:8, children:[for(final e in [{"n":"Normale","p":1.0},{"n":"Profonda","p":0.7},{"n":"Acuta","p":1.4},{"n":"Robot","p":0.85},{"n":"Gigante","p":0.6},{"n":"Scoiattolo","p":1.8}]) ChoiceChip(label:Text(e["n"] as String), selected:pitch==e["p"], selectedColor:const Color(0xFF00FF88), onSelected:(_)=>setVoice(e["p"] as double, e["n"] as String))]), const SizedBox(height:20), Text("Voce attiva: $vname ${pitch}x"), if(lastRec!=null) Padding(padding:const EdgeInsets.only(top:20), child:SizedBox(width:double.infinity, child:ElevatedButton.icon(onPressed:()=>playVoice(lastRec!), icon:const Icon(Icons.play_arrow), label:Text("Prova $vname"), style:ElevatedButton.styleFrom(backgroundColor:const Color(0xFF00FF88), foregroundColor:Colors.black))))])),
                 Column(children:[Container(color:Colors.white10, padding:const EdgeInsets.all(8), child:Row(children:[const Text("Autodistruggi:"), const SizedBox(width:10), DropdownButton<int>(value:ttl, items:const[DropdownMenuItem(value:5,child:Text("5s")),DropdownMenuItem(value:30,child:Text("30s")),DropdownMenuItem(value:60,child:Text("1m")),DropdownMenuItem(value:300,child:Text("5m"))], onChanged:(v)=>setState(()=>ttl=v!))])), Expanded(child:ListView.builder(reverse:true, itemCount:chats.length, itemBuilder:(c,i){final m=chats[i]; return Container(margin:const EdgeInsets.all(8), padding:const EdgeInsets.all(12), decoration:BoxDecoration(color:const Color(0xFF00FF88).withOpacity(0.15), borderRadius:BorderRadius.circular(12), border:Border.all(color:const Color(0xFF00FF88))), child:Text("${m.t}\n${m.ttl}s"));})), Padding(padding:const EdgeInsets.all(8), child:Row(children:[Expanded(child:TextField(controller:chatC, decoration:const InputDecoration(hintText:"Messaggio segreto..."))), IconButton(icon:const Icon(Icons.send), onPressed:sendGhost)]))]),
                 Column(children:[Padding(padding:const EdgeInsets.all(12), child:SizedBox(width:double.infinity, child:ElevatedButton.icon(onPressed:() async {final r=await FilePicker.platform.pickFiles(); if(r!=null&&r.files.single.path!=null){ await File(r.files.single.path!).copy('$vpath/${r.files.single.name}'); refresh();}}, icon:const Icon(Icons.upload_file), label:const Text("Nascondi file")))), Expanded(child:ListView.builder(itemCount:files.length, itemBuilder:(c,i){final f=files[i]; return ListTile(title:Text(f.path.split('/').last, style:const TextStyle(fontSize:12)), trailing:IconButton(icon:const Icon(Icons.delete), onPressed:(){ f.deleteSync(); refresh();}));}))],
               ])));
