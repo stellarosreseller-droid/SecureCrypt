@@ -9,13 +9,14 @@ jobs:
         with:
           flutter-version: '3.22.3'
           channel: 'stable'
-          cache: true
-
       - name: Fix Gradle - recreate clean
         run: |
           rm -rf android
           flutter create /tmp/fresh --project-name securecrypt --org com.securecrypt.app --platforms android
           cp -r /tmp/fresh/android.
+          ls -la
+      - name: Inject code
+        run: |
           cat > pubspec.yaml << 'YAML'
           name: securecrypt
           description: SecureCrypt Vault
@@ -34,9 +35,6 @@ jobs:
           flutter:
             uses-material-design: true
           YAML
-
-      - name: Inject SecureCrypt code
-        run: |
           mkdir -p lib
           cat > lib/main.dart << 'DART'
           import 'dart:io';
@@ -53,7 +51,6 @@ jobs:
           class Vault extends StatefulWidget{final bool fake; const Vault({super.key,required this.fake}); @override State<Vault> createState()=>_VaultState();}
           class _VaultState extends State<Vault> with SingleTickerProviderStateMixin{late TabController tab; final rec=AudioRecorder(); final player=AudioPlayer(); bool isRec=false; List<FileSystemEntity> files=[]; String path=""; @override void initState(){super.initState();tab=TabController(length:2,vsync:this); initV();} Future<void> initV() async{await Permission.microphone.request(); await Permission.storage.request(); final d=await getApplicationDocumentsDirectory(); final vd=Directory("${d.path}/vault"); if(!await vd.exists()) await vd.create(recursive:true); setState(()=>path=vd.path); ref();} void ref(){if(path.isEmpty) return; setState(()=>files=Directory(path).listSync().where((f)=>f is File).toList());} Future<void> tog() async{if(isRec){await rec.stopRecorder(); setState(()=>isRec=false); ref();} else {if(await rec.hasPermission()){final d=await getApplicationDocumentsDirectory(); await rec.start(const RecordConfig(),path:"${d.path}/vault/voice_${DateTime.now().millisecondsSinceEpoch}.m4a"); setState(()=>isRec=true);}}} Future<void> play(File f) async{await player.setFilePath(f.path); await player.play();} Future<void> pick() async{final r=await FilePicker.platform.pickFiles(); if(r!=null&&r.files.single.path!=null){await File(r.files.single.path!).copy("$path/${r.files.single.name}"); ref();}} @override Widget build(BuildContext c){if(widget.fake) return Scaffold(appBar:AppBar(title:const Text("Calculator")),body:const Center(child:Text("Vuoto"))); return Scaffold(appBar:AppBar(title:const Text("SecureCrypt Vault"),bottom:TabBar(controller:tab,tabs:const[Tab(icon:Icon(Icons.mic),text:"Ghost"),Tab(icon:Icon(Icons.folder),text:"File")]),actions:[IconButton(onPressed:()=>Navigator.pushReplacement(context, MaterialPageRoute(builder:(_)=>const Pin())),icon:const Icon(Icons.lock))]),body:TabBarView(controller:tab,children:[Center(child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(isRec?Icons.mic:Icons.mic_none,size:100,color:isRec?Colors.red:const Color(0xFF00FF88)),const SizedBox(height:40),GestureDetector(onTap:tog,child:Container(width:90,height:90,decoration:BoxDecoration(color:isRec?Colors.red:const Color(0xFF00FF88),shape:BoxShape.circle),child:Icon(isRec?Icons.stop:Icons.mic,size:40,color:Colors.black)))] )),Column(children:[Padding(padding:const EdgeInsets.all(12),child:SizedBox(width:double.infinity,child:ElevatedButton.icon(onPressed:pick,icon:const Icon(Icons.upload_file),label:const Text("Nascondi file")))),Expanded(child:ListView.builder(itemCount:files.length,itemBuilder:(c,i){final f=files[i] as File; return ListTile(title:Text(f.path.split('/').last),onTap:()=>play(f),trailing:IconButton(icon:const Icon(Icons.delete),onPressed:(){f.deleteSync(); ref();}));}))])]));} @override void dispose(){tab.dispose(); player.dispose(); rec.dispose(); super.dispose();}}
           DART
-
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
