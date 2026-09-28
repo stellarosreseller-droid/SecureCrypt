@@ -11,14 +11,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Fix Gradle - recreate project clean
+      - name: Fix Gradle - recreate clean
         run: |
-          rm -rf android ios web linux windows macos
-          flutter create /tmp/fresh --project-name securecrypt --org com.securecrypt.app --platforms android
-          cp -r /tmp/fresh/android./
-          cp /tmp/fresh/pubspec.yaml./pubspec.yaml.bak
-          cat pubspec.yaml.bak > pubspec.yaml || echo "pubspec exists"
-          # Re-add our dependencies
+          rm -rf android
+          flutter create /tmp/fresh --project-name securecrypt --org com.securecrypt.app --platforms=android --no-web --no-ios --no-windows --no-macos --no-linux
+          cp -r /tmp/fresh/android.
           cat > pubspec.yaml << 'YAML'
           name: securecrypt
           description: SecureCrypt Vault
