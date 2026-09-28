@@ -14,7 +14,7 @@ jobs:
       - name: Fix Gradle - recreate clean
         run: |
           rm -rf android
-          flutter create /tmp/fresh --project-name securecrypt --org com.securecrypt.app --platforms=android --no-web --no-ios --no-windows --no-macos --no-linux
+          flutter create /tmp/fresh --project-name securecrypt --org com.securecrypt.app --platforms android
           cp -r /tmp/fresh/android.
           cat > pubspec.yaml << 'YAML'
           name: securecrypt
@@ -31,7 +31,6 @@ jobs:
             path_provider: ^2.1.1
             permission_handler: ^11.3.0
             file_picker: ^8.0.0+1
-            shared_preferences: ^2.2.2
           flutter:
             uses-material-design: true
           YAML
