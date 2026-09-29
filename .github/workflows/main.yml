@@ -10,19 +10,48 @@ jobs:
           flutter-version: '3.22.3'
           channel: 'stable'
 
-      - name: Ensure Android folder
+      - name: Recreate Android folder
         run: |
           rm -rf android
           flutter create /tmp/f --project-name securecrypt --org com.securecrypt.app --platforms android
           cp -r /tmp/f/android $PWD
+          ls android/
 
-      - name: Fix Android minSdk for record
+      - name: Fix Kotlin and minSdk
         run: |
-          sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle || true
-          sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle.kts || true
-          sed -i 's/minSdkVersion 16/minSdkVersion 23/g' android/app/build.gradle || true
-          sed -i 's/minSdk = 16/minSdk = 23/g' android/app/build.gradle.kts || true
-          cat android/app/build.gradle.kts | grep minSdk || cat android/app/build.gradle | grep minSdk
+          echo "--- Patching Kotlin version ---"
+          sed -i "s/1.7.10/1.9.22/g" android/build.gradle || true
+          sed -i "s/1.7.10/1.9.22/g" android/build.gradle.kts || true
+          sed -i "s/1.7.10/1.9.22/g" android/settings.gradle || true
+          sed -i "s/1.7.10/1.9.22/g" android/settings.gradle.kts || true
+          sed -i "s/flutter.minSdkVersion/23/g" android/app/build.gradle || true
+          sed -i "s/flutter.minSdkVersion/23/g" android/app/build.gradle.kts || true
+
+          echo "--- Adding resolutionStrategy ---"
+          if [ -f "android/app/build.gradle.kts" ]; then
+            cat >> android/app/build.gradle.kts <<'EOF'
+
+          configurations.all {
+              resolutionStrategy {
+                  force("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
+                  force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22")
+                  force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22")
+              }
+          }
+          EOF
+          fi
+          if [ -f "android/app/build.gradle" ]; then
+            cat >> android/app/build.gradle <<'EOF'
+
+          configurations.all {
+              resolutionStrategy {
+                  force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22'
+                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22'
+                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22'
+              }
+          }
+          EOF
+          fi
 
       - run: flutter pub get
       - run: flutter build apk --release
