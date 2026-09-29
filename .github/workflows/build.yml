@@ -21,14 +21,18 @@ jobs:
         run: |
           rm -rf android
           flutter create . --platforms=android
-          # FIX per record e audioplayers - serve minSdk 23
-          sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/g' android/app/build.gradle
-          sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle.kts || true
-          sed -i 's/minSdk =.*/minSdk = 23/g' android/app/build.gradle.kts || true
-          sed -i 's/minSdkVersion.*/minSdkVersion 23/g' android/local.properties || true
-          echo "Patched minSdk to 23"
-          cat android/app/build.gradle | grep -i minsdk || cat android/app/build.gradle.kts | grep -i minsdk
+          echo "=== Patch minSdk per microfono ==="
+          # Nuovo Flutter usa .kts, vecchio .gradle - patchiamo entrambi se esistono
+          if [ -f android/app/build.gradle ]; then
+            sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle || true
+            sed -i 's/minSdkVersion 16/minSdkVersion 23/g' android/app/build.gradle || true
+          fi
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle.kts || true
+            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/g' android/app/build.gradle.kts || true
+            sed -i 's/minSdk = 16/minSdk = 23/g' android/app/build.gradle.kts || true
+          fi
+          echo "minSdk patchato"
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />' $MANIFEST
       - name: Install Pillow
@@ -57,7 +61,7 @@ jobs:
           PY
           python3 /tmp/make_icons.py
       - name: Build APK
-        run: flutter build apk --release -v
+        run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
           name: SecureCrypt-APK
