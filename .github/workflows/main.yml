@@ -10,8 +10,24 @@ jobs:
           channel: 'stable'
       - name: Get deps
         run: flutter pub get
-      - name: Generate icons
-        run: dart run flutter_launcher_icons
+      - name: Set custom icon
+        run: |
+          if [ -f assets/icon.png ]; then
+            echo "Setting custom icon..."
+            cp assets/icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher.png || true
+            cp assets/icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher.png || true
+            cp assets/icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher.png || true
+            cp assets/icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png || true
+            cp assets/icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png || true
+            cp assets/icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png || true
+            cp assets/icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png || true
+            cp assets/icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png || true
+            cp assets/icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png || true
+            cp assets/icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png || true
+            echo "Icon set!"
+          else
+            echo "assets/icon.png not found, using default"
+          fi
       - name: Patch record_android plugin directly
         run: |
           FILE=$(find ~/.pub-cache -path "*record_android-*/android/build.gradle" | head -n 1)
