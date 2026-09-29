@@ -12,23 +12,51 @@ jobs:
           channel: 'stable'
       - name: Get deps
         run: flutter pub get
+      - name: Fix assets folder
+        run: |
+          rm -rf assets/icon.png
+          mkdir -p assets
+          ls -lh assets/ || echo "assets vuota"
       - name: Recreate android + Permessi
         run: |
           rm -rf android
           flutter create . --platforms=android
-          # Aggiunge permesso microfono automaticamente
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />' $MANIFEST
-          echo "--- MANIFEST FIXATO ---"
-          cat $MANIFEST
       - name: Install Pillow
         run: pip install Pillow --user
       - name: Generate valid icons
         run: |
           cat > /tmp/make_icons.py << 'PY'
-          from PIL import Image
+          from PIL import Image, ImageDraw
           from pathlib import Path
-          src = Image.open("assets/icon.png").convert("RGBA")
+          import sys
+          icon_path = Path("assets/icon.png")
+          src = None
+          if icon_path.is_file():
+              try:
+                  src = Image.open(icon_path).convert("RGBA")
+                  print(f"Icona trovata: {icon_path}")
+              except Exception as e:
+                  print(f"Icona rotta ({e}), creo lucchetto default")
+                  src = None
+          if src is None:
+              # Crea lucchetto argentato 1024x1024 da zero
+              print("Creo icona lucchetto argentata da zero")
+              src = Image.new("RGBA", (1024,1024), (15,15,15,255))
+              draw = ImageDraw.Draw(src)
+              # corpo lucchetto
+              draw.rounded_rectangle([200,450,824,900], radius=100, fill=(180,180,180,255))
+              draw.rounded_rectangle([220,470,804,880], radius=80, fill=(130,130,130,255))
+              # arco
+              draw.rounded_rectangle([320,150,704,550], radius=120, outline=(200,200,200,255), width=70)
+              # buco chiave
+              draw.ellipse([452,600,572,700], fill=(20,20,20,255))
+              draw.rectangle([482,680,542,800], fill=(20,20,20,255))
+              # salva anche in assets per le prossime volte
+              src.save(icon_path, "PNG")
+              print(f"Icona salvata in {icon_path}")
+
           sizes = {"mipmap-mdpi":48,"mipmap-hdpi":72,"mipmap-xhdpi":96,"mipmap-xxhdpi":144,"mipmap-xxxhdpi":192}
           for folder,size in sizes.items():
               p = Path(f"android/app/src/main/res/{folder}")
@@ -36,7 +64,7 @@ jobs:
               img = src.resize((size,size), Image.LANCZOS)
               img.save(p/"ic_launcher.png", "PNG")
               img.save(p/"ic_launcher_round.png", "PNG")
-          print("Icone OK")
+          print("Icone OK - BUILD PRONTO")
           PY
           python3 /tmp/make_icons.py
       - name: Build APK
