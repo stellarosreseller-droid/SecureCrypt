@@ -7,55 +7,32 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.3'
+          flutter-version: '3.24.5'
           channel: 'stable'
 
-      - name: Recreate Android folder
+      - name: Recreate Android with new Kotlin
         run: |
           rm -rf android
           flutter create /tmp/f --project-name securecrypt --org com.securecrypt.app --platforms android
           cp -r /tmp/f/android $PWD
-          ls android/
+          echo "Created with:"
+          grep -r "kotlin" android/settings.gradle* || true
 
-      - name: Fix Kotlin and minSdk
+      - name: Force Kotlin 1.9.22 everywhere
         run: |
-          echo "--- Patching Kotlin version ---"
-          sed -i "s/1.7.10/1.9.22/g" android/build.gradle || true
-          sed -i "s/1.7.10/1.9.22/g" android/build.gradle.kts || true
-          sed -i "s/1.7.10/1.9.22/g" android/settings.gradle || true
-          sed -i "s/1.7.10/1.9.22/g" android/settings.gradle.kts || true
-          sed -i "s/flutter.minSdkVersion/23/g" android/app/build.gradle || true
+          sed -i "s/1.7.10/1.9.22/g; s/1.8.10/1.9.22/g; s/1.8.22/1.9.22/g" android/settings.gradle.kts
+          sed -i "s/1.7.10/1.9.22/g; s/1.8.10/1.9.22/g; s/1.8.22/1.9.22/g" android/settings.gradle || true
+          sed -i "s/1.7.10/1.9.22/g; s/1.8.10/1.9.22/g" android/build.gradle.kts || true
+          sed -i "s/1.7.10/1.9.22/g; s/1.8.10/1.9.22/g" android/build.gradle || true
           sed -i "s/flutter.minSdkVersion/23/g" android/app/build.gradle.kts || true
-
-          echo "--- Adding resolutionStrategy ---"
-          if [ -f "android/app/build.gradle.kts" ]; then
-            cat >> android/app/build.gradle.kts <<'EOF'
-
-          configurations.all {
-              resolutionStrategy {
-                  force("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
-                  force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22")
-                  force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22")
-              }
-          }
-          EOF
-          fi
-          if [ -f "android/app/build.gradle" ]; then
-            cat >> android/app/build.gradle <<'EOF'
-
-          configurations.all {
-              resolutionStrategy {
-                  force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22'
-                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22'
-                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22'
-              }
-          }
-          EOF
-          fi
+          sed -i "s/flutter.minSdkVersion/23/g" android/app/build.gradle || true
+          cat android/settings.gradle.kts | grep kotlin
 
       - run: flutter pub get
-      - run: flutter build apk --release
+      - run: flutter clean
+      - run: flutter build apk --release --verbose
+
       - uses: actions/upload-artifact@v4
         with:
-          name: SecureCrypt-FINAL
+          name: SecureCrypt-APK
           path: build/app/outputs/flutter-apk/app-release.apk
