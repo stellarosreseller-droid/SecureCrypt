@@ -1,4 +1,4 @@
-name: Build APK
+name: build
 on: [push]
 jobs:
   build:
@@ -7,46 +7,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
           channel: 'stable'
-
-      - name: Recreate Android
-        run: |
-          rm -rf android
-          flutter create /tmp/f --project-name securecrypt --org com.securecrypt.app --platforms android
-          cp -r /tmp/f/android $PWD
-          rm -f android/local.properties
-
-      - name: Patch app
-        run: |
-          sed -i "s/flutter.minSdkVersion/23/g" android/app/build.gradle 2>/dev/null || true
-          sed -i "s/flutter.minSdkVersion/23/g" android/app/build.gradle.kts 2>/dev/null || true
-          echo "org.gradle.configuration-cache=false" >> android/gradle.properties
-
       - name: Get deps
         run: flutter pub get
-
+      - name: Generate icons
+        run: dart run flutter_launcher_icons
       - name: Patch record_android plugin directly
         run: |
-          RECORD_PATH=$(find ~/.pub-cache -type d -name "record_android*" | head -1)
-          echo "Patching $RECORD_PATH"
-          ls $RECORD_PATH/android/
-          FILE="$RECORD_PATH/android/build.gradle"
-          if [ -f "$FILE" ]; then
-            sed -i "s/flutter.compileSdkVersion/34/g" "$FILE"
-            sed -i "s/flutter.targetSdkVersion/34/g" "$FILE"
-            sed -i "s/compileSdkVersion 33/compileSdkVersion 34/g" "$FILE"
-            sed -i "s/compileSdk 33/compileSdk 34/g" "$FILE"
-            cat "$FILE" | grep -n "compileSdk"
-          fi
-          FILE2="$RECORD_PATH/android/build.gradle.kts"
-          if [ -f "$FILE2" ]; then
-            sed -i "s/flutter.compileSdkVersion/34/g" "$FILE2"
-            cat "$FILE2" | grep -n "compileSdk"
-          fi
-
-      - run: flutter build apk --release
-
+          FILE=$(find ~/.pub-cache -path "*record_android-*/android/build.gradle" | head -n 1)
+          echo "Patching $FILE"
+          sed -i 's/namespace.*//' "$FILE" || true
+          sed -i 's/compileSdkVersion.*/compileSdkVersion 34/' "$FILE" || true
+          sed -i 's/compileSdk.*/compileSdk 34/' "$FILE" || true
+          sed -i 's/minSdkVersion.*/minSdkVersion 21/' "$FILE" || true
+          sed -i 's/targetSdkVersion.*/targetSdkVersion 34/' "$FILE" || true
+      - name: Run flutter build apk --release
+        run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
           name: SecureCrypt-APK
