@@ -15,19 +15,14 @@ jobs:
           rm -rf android
           flutter create /tmp/f --project-name securecrypt --org com.securecrypt.app --platforms android
           cp -r /tmp/f/android $PWD
-          ls android/app/
 
       - name: Fix Android minSdk for record
         run: |
-          if [ -f "android/app/build.gradle" ]; then
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/g' android/app/build.gradle
-            sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle
-            subtitle: Text("${f.lengthSync()} bytes", style: const TextStyle(fontSize: 11)),
-          if [ -f "android/app/build.gradle.kts" ]; then
-            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/g' android/app/build.gradle.kts
-            sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle.kts
-          fi
-          sed -i '/<application/i \ <uses-permission android:name="android.permission.RECORD_AUDIO" \/>' android/app/src/main/AndroidManifest.xml
+          sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle || true
+          sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle.kts || true
+          sed -i 's/minSdkVersion 16/minSdkVersion 23/g' android/app/build.gradle || true
+          sed -i 's/minSdk = 16/minSdk = 23/g' android/app/build.gradle.kts || true
+          cat android/app/build.gradle.kts | grep minSdk || cat android/app/build.gradle | grep minSdk
 
       - run: flutter pub get
       - run: flutter build apk --release
