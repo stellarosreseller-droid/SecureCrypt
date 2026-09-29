@@ -10,30 +10,35 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-      - name: Get deps
-        run: flutter pub get
-      - name: Fix assets folder
+      - name: Fix pubspec name + assets
         run: |
+          sed -i 's/^name:.*/name: securecrypt/' pubspec.yaml
           rm -rf assets
           mkdir -p assets
-          echo "Assets fixato - ora è una cartella vera"
-          ls -la
-      - name: Recreate android + Permessi
+      - name: Get deps
+        run: flutter pub get
+      - name: Recreate android + Permessi + Fix minSdk
         run: |
           rm -rf android
           flutter create . --platforms=android
+          # FIX per record e audioplayers - serve minSdk 23
+          sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/g' android/app/build.gradle
+          sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle.kts || true
+          sed -i 's/minSdk =.*/minSdk = 23/g' android/app/build.gradle.kts || true
+          sed -i 's/minSdkVersion.*/minSdkVersion 23/g' android/local.properties || true
+          echo "Patched minSdk to 23"
+          cat android/app/build.gradle | grep -i minsdk || cat android/app/build.gradle.kts | grep -i minsdk
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />' $MANIFEST
       - name: Install Pillow
         run: pip install Pillow --user
-      - name: Generate valid icons
+      - name: Generate icons
         run: |
           cat > /tmp/make_icons.py << 'PY'
           from PIL import Image, ImageDraw
           from pathlib import Path
           icon_path = Path("assets/icon.png")
-          # Crea lucchetto argentato da zero (non serve più caricare nulla)
-          print("Creo icona SecureCrypt")
           src = Image.new("RGBA", (1024,1024), (15,15,15,255))
           draw = ImageDraw.Draw(src)
           draw.rounded_rectangle([200,450,824,900], radius=100, fill=(180,180,180,255))
@@ -42,7 +47,6 @@ jobs:
           draw.ellipse([452,600,572,700], fill=(20,20,20,255))
           draw.rectangle([482,680,542,800], fill=(20,20,20,255))
           src.save(icon_path, "PNG")
-          print(f"Icona salvata in {icon_path}")
           sizes = {"mipmap-mdpi":48,"mipmap-hdpi":72,"mipmap-xhdpi":96,"mipmap-xxhdpi":144,"mipmap-xxxhdpi":192}
           for folder,size in sizes.items():
               p = Path(f"android/app/src/main/res/{folder}")
@@ -50,11 +54,10 @@ jobs:
               img = src.resize((size,size), Image.LANCZOS)
               img.save(p/"ic_launcher.png", "PNG")
               img.save(p/"ic_launcher_round.png", "PNG")
-          print("Icone OK")
           PY
           python3 /tmp/make_icons.py
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release -v
       - uses: actions/upload-artifact@v4
         with:
           name: SecureCrypt-APK
