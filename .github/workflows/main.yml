@@ -14,7 +14,7 @@ jobs:
         run: |
           rm -rf android
           flutter create /tmp/f --project-name securecrypt --org com.securecrypt.app --platforms android
-          cp -r /tmp/f/android.
+          cp -r /tmp/f/android $PWD
           ls android/app/
 
       - name: Fix Android minSdk for record
