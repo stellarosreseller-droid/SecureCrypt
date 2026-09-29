@@ -13,12 +13,11 @@ jobs:
       - name: Recreate android folder to fix v1 embedding
         run: |
           rm -rf android
-          flutter create. --platforms=android --org com.example
+          flutter create. --platforms=android
       - name: Set custom icon
         run: |
           if [ -f assets/icon.png ]; then
             for d in android/app/src/main/res/mipmap-*; do
-              mkdir -p "$d"
               cp assets/icon.png "$d/ic_launcher.png"
               cp assets/icon.png "$d/ic_launcher_round.png"
             done
