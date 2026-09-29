@@ -10,6 +10,10 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+      - name: Debug assets
+        run: |
+          ls -lh assets/ || echo "no assets folder"
+          file assets/icon.png || echo "icon.png not found"
       - name: Get deps
         run: flutter pub get
       - name: Recreate android
@@ -17,21 +21,29 @@ jobs:
           rm -rf android
           flutter create . --platforms=android
       - name: Install Pillow
-        run: pip install Pillow
+        run: pip install Pillow --user
       - name: Generate valid icons
         run: |
           python3 -c "
           from PIL import Image
           from pathlib import Path
+          import sys
+          src_path = Path('assets/icon.png')
+          if not src_path.exists():
+              print('ERRORE: assets/icon.png non esiste!'); sys.exit(1)
+          try:
+              src = Image.open(src_path)
+              src = src.convert('RGBA')
+          except Exception as e:
+              print(f'ERRORE: icon.png non è un immagine valida: {e}'); sys.exit(1)
           sizes = {'mipmap-mdpi':48,'mipmap-hdpi':72,'mipmap-xhdpi':96,'mipmap-xxhdpi':144,'mipmap-xxxhdpi':192}
-          src = Image.open('assets/icon.png').convert('RGBA')
           for folder,size in sizes.items():
               p = Path(f'android/app/src/main/res/{folder}')
               p.mkdir(parents=True, exist_ok=True)
               img = src.resize((size,size), Image.LANCZOS)
               img.save(p/'ic_launcher.png', 'PNG')
               img.save(p/'ic_launcher_round.png', 'PNG')
-          print('icons generated')
+          print('Icone generate OK')
           "
       - name: Build APK
         run: flutter build apk --release
