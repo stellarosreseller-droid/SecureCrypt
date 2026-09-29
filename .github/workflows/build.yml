@@ -1,5 +1,5 @@
 name: build
-on: 
+on:
   push:
   workflow_dispatch:
 jobs:
@@ -15,7 +15,7 @@ jobs:
       - name: Recreate android
         run: |
           rm -rf android
-          flutter create . --platforms=android
+          flutter create. --platforms=android
       - name: Install Pillow
         run: pip install Pillow --user
       - name: Generate valid icons
@@ -23,20 +23,7 @@ jobs:
           cat > /tmp/make_icons.py << 'PY'
           from PIL import Image
           from pathlib import Path
-          src_path = Path("assets/icon.png")
-          try:
-              src = Image.open(src_path).convert("RGBA")
-              print(f"Usata icona esistente: {src_path}")
-          except Exception as e:
-              print(f"assets/icon.png non valida ({e}), creo icona lucchetto di default")
-              # crea icona lucchetto grigia di default 1024x1024
-              src = Image.new("RGBA", (1024, 1024), (0,0,0,0))
-              # disegna un cerchio grigio semplice come placeholder
-              from PIL import ImageDraw
-              draw = ImageDraw.Draw(src)
-              draw.rounded_rectangle([150,400,874,900], radius=80, fill=(120,120,120,255))
-              draw.rounded_rectangle([350,200,674,500], radius=120, outline=(180,180,180,255), width=60)
-          
+          src = Image.open("assets/icon.png").convert("RGBA")
           sizes = {"mipmap-mdpi":48,"mipmap-hdpi":72,"mipmap-xhdpi":96,"mipmap-xxhdpi":144,"mipmap-xxxhdpi":192}
           for folder,size in sizes.items():
               p = Path(f"android/app/src/main/res/{folder}")
