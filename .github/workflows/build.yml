@@ -16,12 +16,23 @@ jobs:
         run: |
           rm -rf android
           flutter create . --platforms=android
-      - name: Set custom icon
+      - name: Install Pillow
+        run: pip install Pillow
+      - name: Generate valid icons
         run: |
-          for d in android/app/src/main/res/mipmap-*; do
-            cp assets/icon.png "$d/ic_launcher.png"
-            cp assets/icon.png "$d/ic_launcher_round.png"
-          done
+          python3 -c "
+          from PIL import Image
+          from pathlib import Path
+          sizes = {'mipmap-mdpi':48,'mipmap-hdpi':72,'mipmap-xhdpi':96,'mipmap-xxhdpi':144,'mipmap-xxxhdpi':192}
+          src = Image.open('assets/icon.png').convert('RGBA')
+          for folder,size in sizes.items():
+              p = Path(f'android/app/src/main/res/{folder}')
+              p.mkdir(parents=True, exist_ok=True)
+              img = src.resize((size,size), Image.LANCZOS)
+              img.save(p/'ic_launcher.png', 'PNG')
+              img.save(p/'ic_launcher_round.png', 'PNG')
+          print('icons generated')
+          "
       - name: Build APK
         run: flutter build apk --release
       - uses: actions/upload-artifact@v4
