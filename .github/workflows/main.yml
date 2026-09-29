@@ -17,47 +17,34 @@ jobs:
           cp -r /tmp/f/android $PWD
           rm -f android/local.properties
 
-      - name: Force fix for record_android
+      - name: Patch app
         run: |
-          # minSdk 23
-          sed -i "s/flutter.minSdkVersion/23/g; s/minSdkVersion 16/minSdkVersion 23/g; s/minSdk = 16/minSdk = 23/g; s/flutter.compileSdkVersion/34/g; s/flutter.targetSdkVersion/34/g" android/app/build.gradle 2>/dev/null || true
-          sed -i "s/flutter.minSdkVersion/23/g; s/minSdk = 16/minSdk = 23/g; s/flutter.compileSdkVersion/34/g; s/flutter.targetSdkVersion/34/g" android/app/build.gradle.kts 2>/dev/null || true
-
-          # Fix Kotlin + disable cache
+          sed -i "s/flutter.minSdkVersion/23/g; s/minSdkVersion 16/minSdkVersion 23/g; s/minSdk = 16/minSdk = 23/g" android/app/build.gradle 2>/dev/null || true
+          sed -i "s/flutter.minSdkVersion/23/g; s/minSdk = 16/minSdk = 23/g" android/app/build.gradle.kts 2>/dev/null || true
           echo "org.gradle.configuration-cache=false" >> android/gradle.properties
-          echo "android.useAndroidX=true" >> android/gradle.properties
 
-          # FORZA compileSdk 34 a tutti i plugin incluso record_android
-          if [ -f "android/build.gradle.kts" ]; then
-            cat >> android/build.gradle.kts <<'EOF'
-          subprojects {
-              afterEvaluate {
-                  if (hasProperty("android")) {
-                      val androidExtension = extensions.findByName("android")
-                      if (androidExtension is com.android.build.gradle.BaseExtension) {
-                          androidExtension.compileSdkVersion(34)
-                      }
-                  }
-              }
-          }
-          EOF
-          else
-            cat >> android/build.gradle <<'EOF'
-          subprojects {
-              afterEvaluate { project ->
-                  if (project.hasProperty('android')) {
-                      android {
-                          compileSdkVersion 34
-                      }
-                  }
-              }
-          }
-          EOF
+      - name: Get deps
+        run: flutter pub get
+
+      - name: Patch record_android plugin directly
+        run: |
+          RECORD_PATH=$(find ~/.pub-cache -type d -name "record_android*" | head -1)
+          echo "Patching $RECORD_PATH"
+          ls $RECORD_PATH/android/
+          # forza compileSdk 34 dentro il plugin
+          sed -i "s/flutter.compileSdkVersion/34/g" $RECORD_PATH/android/build.gradle || true
+          sed -i "s/compileSdkVersion 33/compileSdkVersion 34/g" $RECORD_PATH/android/build.gradle || true
+          sed -i "s/compileSdk 33/compileSdk 34/g" $RECORD_PATH/android/build.gradle || true
+          sed -i "s/compileSdkVersion 34/compileSdkVersion 34/g" $RECORD_PATH/android/build.gradle || true
+          # se manca del tutto, aggiungilo
+          if! grep -q "compileSdkVersion" $RECORD_PATH/android/build.gradle; then
+            sed -i "/android {/a \ compileSdkVersion 34" $RECORD_PATH/android/build.gradle
           fi
-          cat android/build.gradle* 2>/dev/null | tail -20
-          cat android/gradle.properties
+          if! grep -q "compileSdk" $RECORD_PATH/android/build.gradle; then
+            sed -i "/android {/a \ compileSdk 34" $RECORD_PATH/android/build.gradle
+          fi
+          cat $RECORD_PATH/android/build.gradle | grep -A2 -B2 compileSdk
 
-      - run: flutter pub get
       - run: flutter build apk --release
 
       - uses: actions/upload-artifact@v4
