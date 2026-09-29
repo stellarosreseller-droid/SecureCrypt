@@ -12,10 +12,16 @@ jobs:
           channel: 'stable'
       - name: Get deps
         run: flutter pub get
-      - name: Recreate android folder
+      - name: Recreate android
         run: |
           rm -rf android
           flutter create . --platforms=android
+      - name: Set custom icon
+        run: |
+          for d in android/app/src/main/res/mipmap-*; do
+            cp assets/icon.png "$d/ic_launcher.png"
+            cp assets/icon.png "$d/ic_launcher_round.png"
+          done
       - name: Build APK
         run: flutter build apk --release
       - uses: actions/upload-artifact@v4
