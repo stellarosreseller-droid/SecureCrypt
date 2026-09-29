@@ -1,19 +1,6 @@
-name: securecrypt
-publish_to: 'none'
-version: 1.0.0+22
-environment:
-  sdk: '>=3.0.0 <4.0.0'
 dependencies:
   flutter:
     sdk: flutter
-  record: 5.0.4
-  just_audio: 0.9.36
-  path_provider: 2.1.1
-  permission_handler: 11.0.1
-  file_picker: 6.1.1
-  share_plus: 7.2.1
-  path: 1.8.3
-dependency_overrides:
-  record_platform_interface: 1.1.0
-flutter:
-  uses-material-design: true
+  path_provider: ^2.1.2
+  path: ^1.8.3
+  record: 5.1.0
