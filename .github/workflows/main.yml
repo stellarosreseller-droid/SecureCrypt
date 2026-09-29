@@ -19,8 +19,8 @@ jobs:
 
       - name: Patch app
         run: |
-          sed -i "s/flutter.minSdkVersion/23/g; s/minSdkVersion 16/minSdkVersion 23/g; s/minSdk = 16/minSdk = 23/g" android/app/build.gradle 2>/dev/null || true
-          sed -i "s/flutter.minSdkVersion/23/g; s/minSdk = 16/minSdk = 23/g" android/app/build.gradle.kts 2>/dev/null || true
+          sed -i "s/flutter.minSdkVersion/23/g" android/app/build.gradle 2>/dev/null || true
+          sed -i "s/flutter.minSdkVersion/23/g" android/app/build.gradle.kts 2>/dev/null || true
           echo "org.gradle.configuration-cache=false" >> android/gradle.properties
 
       - name: Get deps
@@ -31,19 +31,19 @@ jobs:
           RECORD_PATH=$(find ~/.pub-cache -type d -name "record_android*" | head -1)
           echo "Patching $RECORD_PATH"
           ls $RECORD_PATH/android/
-          # forza compileSdk 34 dentro il plugin
-          sed -i "s/flutter.compileSdkVersion/34/g" $RECORD_PATH/android/build.gradle || true
-          sed -i "s/compileSdkVersion 33/compileSdkVersion 34/g" $RECORD_PATH/android/build.gradle || true
-          sed -i "s/compileSdk 33/compileSdk 34/g" $RECORD_PATH/android/build.gradle || true
-          sed -i "s/compileSdkVersion 34/compileSdkVersion 34/g" $RECORD_PATH/android/build.gradle || true
-          # se manca del tutto, aggiungilo
-          if! grep -q "compileSdkVersion" $RECORD_PATH/android/build.gradle; then
-            sed -i "/android {/a \ compileSdkVersion 34" $RECORD_PATH/android/build.gradle
+          FILE="$RECORD_PATH/android/build.gradle"
+          if [ -f "$FILE" ]; then
+            sed -i "s/flutter.compileSdkVersion/34/g" "$FILE"
+            sed -i "s/flutter.targetSdkVersion/34/g" "$FILE"
+            sed -i "s/compileSdkVersion 33/compileSdkVersion 34/g" "$FILE"
+            sed -i "s/compileSdk 33/compileSdk 34/g" "$FILE"
+            cat "$FILE" | grep -n "compileSdk"
           fi
-          if! grep -q "compileSdk" $RECORD_PATH/android/build.gradle; then
-            sed -i "/android {/a \ compileSdk 34" $RECORD_PATH/android/build.gradle
+          FILE2="$RECORD_PATH/android/build.gradle.kts"
+          if [ -f "$FILE2" ]; then
+            sed -i "s/flutter.compileSdkVersion/34/g" "$FILE2"
+            cat "$FILE2" | grep -n "compileSdk"
           fi
-          cat $RECORD_PATH/android/build.gradle | grep -A2 -B2 compileSdk
 
       - run: flutter build apk --release
 
