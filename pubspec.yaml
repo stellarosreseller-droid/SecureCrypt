@@ -1,25 +1,15 @@
 name: securecrypt
-description: SecureCrypt Vault
+description: SecureCrypt
 publish_to: 'none'
 version: 1.0.0+1
-
 environment:
-  sdk: '>=3.5.0 <4.0.0'
-
+  sdk: '>=3.0.0 <4.0.0'
 dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  path_provider: ^2.1.2
-  path: ^1.8.3
-  record: ^6.1.1
-  audioplayers: ^6.0.0
   permission_handler: ^11.3.0
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^4.0.0
-
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon.png
