@@ -12,11 +12,8 @@ jobs:
         run: flutter pub get
       - name: Recreate android folder to fix v1 embedding
         run: |
-          echo "Deleting old android..."
           rm -rf android
-          echo "Recreating with v2 embedding..."
           flutter create. --platforms=android --org com.example
-          echo "Android recreated"
       - name: Set custom icon
         run: |
           if [ -f assets/icon.png ]; then
@@ -25,7 +22,6 @@ jobs:
               cp assets/icon.png "$d/ic_launcher.png"
               cp assets/icon.png "$d/ic_launcher_round.png"
             done
-            echo "Icon applied"
           fi
       - name: Patch record_android
         run: |
