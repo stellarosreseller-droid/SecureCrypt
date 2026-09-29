@@ -10,34 +10,26 @@ jobs:
           channel: 'stable'
       - name: Get deps
         run: flutter pub get
-      - name: Set custom icon
+      - name: Set custom icon if exists
         run: |
           if [ -f assets/icon.png ]; then
-            echo "Setting custom icon..."
-            cp assets/icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher.png || true
-            cp assets/icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher.png || true
-            cp assets/icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher.png || true
-            cp assets/icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png || true
-            cp assets/icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png || true
-            cp assets/icon.png android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png || true
-            cp assets/icon.png android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png || true
-            cp assets/icon.png android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png || true
-            cp assets/icon.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png || true
-            cp assets/icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png || true
-            echo "Icon set!"
+            for d in android/app/src/main/res/mipmap-*; do
+              mkdir -p "$d"
+              cp assets/icon.png "$d/ic_launcher.png" || true
+              cp assets/icon.png "$d/ic_launcher_round.png" || true
+            done
+            echo "Custom icon applied"
           else
-            echo "assets/icon.png not found, using default"
+            echo "No custom icon found, keeping default"
           fi
-      - name: Patch record_android plugin directly
+      - name: Patch record_android
         run: |
           FILE=$(find ~/.pub-cache -path "*record_android-*/android/build.gradle" | head -n 1)
-          echo "Patching $FILE"
           sed -i 's/namespace.*//' "$FILE" || true
           sed -i 's/compileSdkVersion.*/compileSdkVersion 34/' "$FILE" || true
           sed -i 's/compileSdk.*/compileSdk 34/' "$FILE" || true
           sed -i 's/minSdkVersion.*/minSdkVersion 21/' "$FILE" || true
-          sed -i 's/targetSdkVersion.*/targetSdkVersion 34/' "$FILE" || true
-      - name: Run flutter build apk --release
+      - name: Build APK
         run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
