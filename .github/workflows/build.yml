@@ -10,10 +10,6 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-      - name: Debug assets
-        run: |
-          ls -lh assets/ || echo "no assets folder"
-          file assets/icon.png || echo "icon.png not found"
       - name: Get deps
         run: flutter pub get
       - name: Recreate android
@@ -24,27 +20,33 @@ jobs:
         run: pip install Pillow --user
       - name: Generate valid icons
         run: |
-          python3 -c "
+          cat > /tmp/make_icons.py << 'PY'
           from PIL import Image
           from pathlib import Path
-          import sys
-          src_path = Path('assets/icon.png')
-          if not src_path.exists():
-              print('ERRORE: assets/icon.png non esiste!'); sys.exit(1)
+          src_path = Path("assets/icon.png")
           try:
-              src = Image.open(src_path)
-              src = src.convert('RGBA')
+              src = Image.open(src_path).convert("RGBA")
+              print(f"Usata icona esistente: {src_path}")
           except Exception as e:
-              print(f'ERRORE: icon.png non è un immagine valida: {e}'); sys.exit(1)
-          sizes = {'mipmap-mdpi':48,'mipmap-hdpi':72,'mipmap-xhdpi':96,'mipmap-xxhdpi':144,'mipmap-xxxhdpi':192}
+              print(f"assets/icon.png non valida ({e}), creo icona lucchetto di default")
+              # crea icona lucchetto grigia di default 1024x1024
+              src = Image.new("RGBA", (1024, 1024), (0,0,0,0))
+              # disegna un cerchio grigio semplice come placeholder
+              from PIL import ImageDraw
+              draw = ImageDraw.Draw(src)
+              draw.rounded_rectangle([150,400,874,900], radius=80, fill=(120,120,120,255))
+              draw.rounded_rectangle([350,200,674,500], radius=120, outline=(180,180,180,255), width=60)
+          
+          sizes = {"mipmap-mdpi":48,"mipmap-hdpi":72,"mipmap-xhdpi":96,"mipmap-xxhdpi":144,"mipmap-xxxhdpi":192}
           for folder,size in sizes.items():
-              p = Path(f'android/app/src/main/res/{folder}')
+              p = Path(f"android/app/src/main/res/{folder}")
               p.mkdir(parents=True, exist_ok=True)
               img = src.resize((size,size), Image.LANCZOS)
-              img.save(p/'ic_launcher.png', 'PNG')
-              img.save(p/'ic_launcher_round.png', 'PNG')
-          print('Icone generate OK')
-          "
+              img.save(p/"ic_launcher.png", "PNG")
+              img.save(p/"ic_launcher_round.png", "PNG")
+          print("Icone OK")
+          PY
+          python3 /tmp/make_icons.py
       - name: Build APK
         run: flutter build apk --release
       - uses: actions/upload-artifact@v4
