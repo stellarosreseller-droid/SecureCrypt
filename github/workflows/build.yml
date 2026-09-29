@@ -1,0 +1,30 @@
+name: build
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - name: Get deps
+        run: flutter pub get
+      - name: Recreate android folder
+        run: |
+          rm -rf android
+          flutter create. --platforms=android
+      - name: Set custom icon
+        run: |
+          if [ -f assets/icon.png ]; then
+            for d in android/app/src/main/res/mipmap-*; do
+              cp assets/icon.png "$d/ic_launcher.png" || true
+              cp assets/icon.png "$d/ic_launcher_round.png" || true
+            done
+          fi
+      - name: Build APK
+        run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SecureCrypt-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
