@@ -10,25 +10,21 @@ jobs:
           channel: 'stable'
       - name: Get deps
         run: flutter pub get
-      - name: Fix Android v1 embedding (ricrea android)
+      - name: Fix Android v1 embedding
         run: |
-          if [! -f android/app/src/main/AndroidManifest.xml ]; then
-            echo "Cartella android mancante, la ricreo..."
-            flutter create. --platforms=android
-          else
-            echo "Fix v1 -> v2"
-            sed -i 's/android:value="1"/android:value="2"/' android/app/src/main/AndroidManifest.xml || true
-            # Rimuove vecchi import v1 se ci sono
-            find android -name "MainActivity.java" -exec sh -c 'echo "package com.example.securecrypt; import io.flutter.embedding.android.FlutterActivity; public class MainActivity extends FlutterActivity {}" > "$1"' _ {} \; || true
-            find android -name "MainActivity.kt" -exec sh -c 'echo "package com.example.securecrypt; import io.flutter.embedding.android.FlutterActivity; class MainActivity: FlutterActivity()" > "$1"' _ {} \; || true
+          if [! -d "android" ]; then
+            echo "Android folder missing, recreating..."
+            flutter create. --platforms=android --org com.example
           fi
-      - name: Set custom icon if exists
+          sed -i 's/android:value="1"/android:value="2"/g' android/app/src/main/AndroidManifest.xml || true
+          rm -rf android/app/src/main/java/io/flutter/app || true
+      - name: Set custom icon
         run: |
           if [ -f assets/icon.png ]; then
             for d in android/app/src/main/res/mipmap-*; do
               mkdir -p "$d"
-              cp assets/icon.png "$d/ic_launcher.png" || true
-              cp assets/icon.png "$d/ic_launcher_round.png" || true
+              cp assets/icon.png "$d/ic_launcher.png"
+              cp assets/icon.png "$d/ic_launcher_round.png"
             done
             echo "Custom icon applied"
           fi
@@ -37,9 +33,7 @@ jobs:
           FILE=$(find ~/.pub-cache -path "*record_android-*/android/build.gradle" | head -n 1)
           if [ -f "$FILE" ]; then
             sed -i 's/namespace.*//' "$FILE" || true
-            sed -i 's/compileSdkVersion.*/compileSdkVersion 34/' "$FILE" || true
             sed -i 's/compileSdk.*/compileSdk 34/' "$FILE" || true
-            sed -i 's/minSdkVersion.*/minSdkVersion 21/' "$FILE" || true
           fi
       - name: Build APK
         run: flutter build apk --release
