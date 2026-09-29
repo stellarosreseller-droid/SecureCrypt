@@ -12,10 +12,15 @@ jobs:
           channel: 'stable'
       - name: Get deps
         run: flutter pub get
-      - name: Recreate android
+      - name: Recreate android + Permessi
         run: |
           rm -rf android
-          flutter create. --platforms=android
+          flutter create . --platforms=android
+          # Aggiunge permesso microfono automaticamente
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />' $MANIFEST
+          echo "--- MANIFEST FIXATO ---"
+          cat $MANIFEST
       - name: Install Pillow
         run: pip install Pillow --user
       - name: Generate valid icons
