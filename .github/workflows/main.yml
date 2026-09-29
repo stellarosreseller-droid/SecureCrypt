@@ -15,8 +15,10 @@ jobs:
           rm -rf android
           flutter create /tmp/f --project-name securecrypt --org com.securecrypt.app --platforms android
           cp -r /tmp/f/android $PWD
+          rm -f android/local.properties
+          ls android/
 
-      - name: Patch Android config
+      - name: Patch Android
         run: |
           for FILE in android/settings.gradle android/settings.gradle.kts android/build.gradle android/build.gradle.kts android/app/build.gradle android/app/build.gradle.kts; do
             if [ -f "$FILE" ]; then
@@ -24,12 +26,15 @@ jobs:
               sed -i "s/flutter.minSdkVersion/23/g" "$FILE" || true
               sed -i "s/minSdkVersion 16/minSdkVersion 23/g" "$FILE" || true
               sed -i "s/minSdk = 16/minSdk = 23/g" "$FILE" || true
-              sed -i "s/compileSdkVersion 33/compileSdkVersion 34/g; s/compileSdk 33/compileSdk 34/g; s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g" "$FILE" || true
-              sed -i "s/compileSdk = 33/compileSdk = 34/g; s/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g" "$FILE" || true
+              sed -i "s/flutter.compileSdkVersion/34/g" "$FILE" || true
+              sed -i "s/flutter.targetSdkVersion/34/g" "$FILE" || true
             fi
           done
-          # Assicura namespace
-          grep -q "namespace" android/app/build.gradle* || echo "namespace ok"
+          echo "org.gradle.configuration-cache=false" >> android/gradle.properties
+          echo "--- gradle.properties ---"
+          cat android/gradle.properties
+          echo "--- app build ---"
+          grep -n "compileSdk\|minSdk\|kotlin" android/app/build.gradle | head -20 || grep -n "compileSdk\|minSdk\|kotlin" android/app/build.gradle.kts | head -20
 
       - run: flutter pub get
       - run: flutter build apk --release
