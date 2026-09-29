@@ -16,25 +16,46 @@ jobs:
           flutter create /tmp/f --project-name securecrypt --org com.securecrypt.app --platforms android
           cp -r /tmp/f/android $PWD
           rm -f android/local.properties
-          ls android/
 
-      - name: Patch Android
+      - name: Force fix for record_android
         run: |
-          for FILE in android/settings.gradle android/settings.gradle.kts android/build.gradle android/build.gradle.kts android/app/build.gradle android/app/build.gradle.kts; do
-            if [ -f "$FILE" ]; then
-              sed -i "s/1.7.10/1.9.22/g; s/1.8.10/1.9.22/g; s/1.8.22/1.9.22/g; s/1.9.10/1.9.22/g" "$FILE" || true
-              sed -i "s/flutter.minSdkVersion/23/g" "$FILE" || true
-              sed -i "s/minSdkVersion 16/minSdkVersion 23/g" "$FILE" || true
-              sed -i "s/minSdk = 16/minSdk = 23/g" "$FILE" || true
-              sed -i "s/flutter.compileSdkVersion/34/g" "$FILE" || true
-              sed -i "s/flutter.targetSdkVersion/34/g" "$FILE" || true
-            fi
-          done
+          # minSdk 23
+          sed -i "s/flutter.minSdkVersion/23/g; s/minSdkVersion 16/minSdkVersion 23/g; s/minSdk = 16/minSdk = 23/g; s/flutter.compileSdkVersion/34/g; s/flutter.targetSdkVersion/34/g" android/app/build.gradle 2>/dev/null || true
+          sed -i "s/flutter.minSdkVersion/23/g; s/minSdk = 16/minSdk = 23/g; s/flutter.compileSdkVersion/34/g; s/flutter.targetSdkVersion/34/g" android/app/build.gradle.kts 2>/dev/null || true
+
+          # Fix Kotlin + disable cache
           echo "org.gradle.configuration-cache=false" >> android/gradle.properties
-          echo "--- gradle.properties ---"
+          echo "android.useAndroidX=true" >> android/gradle.properties
+
+          # FORZA compileSdk 34 a tutti i plugin incluso record_android
+          if [ -f "android/build.gradle.kts" ]; then
+            cat >> android/build.gradle.kts <<'EOF'
+          subprojects {
+              afterEvaluate {
+                  if (hasProperty("android")) {
+                      val androidExtension = extensions.findByName("android")
+                      if (androidExtension is com.android.build.gradle.BaseExtension) {
+                          androidExtension.compileSdkVersion(34)
+                      }
+                  }
+              }
+          }
+          EOF
+          else
+            cat >> android/build.gradle <<'EOF'
+          subprojects {
+              afterEvaluate { project ->
+                  if (project.hasProperty('android')) {
+                      android {
+                          compileSdkVersion 34
+                      }
+                  }
+              }
+          }
+          EOF
+          fi
+          cat android/build.gradle* 2>/dev/null | tail -20
           cat android/gradle.properties
-          echo "--- app build ---"
-          grep -n "compileSdk\|minSdk\|kotlin" android/app/build.gradle | head -20 || grep -n "compileSdk\|minSdk\|kotlin" android/app/build.gradle.kts | head -20
 
       - run: flutter pub get
       - run: flutter build apk --release
