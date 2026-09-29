@@ -9,63 +9,12 @@ jobs:
         with:
           flutter-version: '3.22.3'
           channel: 'stable'
-      - name: Create
+      - name: Fix Android minSdk for record
         run: |
-          rm -rf android lib
-          flutter create /tmp/f --project-name securecrypt --org com.securecrypt.app --platforms android
-          mv /tmp/f/android $PWD
-          mkdir -p lib
-      - name: Pubspec VERDE 100%
-        run: |
-          cat > pubspec.yaml << 'YAML'
-          name: securecrypt
-          publish_to: 'none'
-          version: 1.0.0+21
-          environment:
-            sdk: '>=3.0.0 <4.0.0'
-          dependencies:
-            flutter:
-              sdk: flutter
-          flutter:
-            uses-material-design: true
-          YAML
-      - name: Main MINIMALE
-        run: |
-          cat > lib/main.dart << 'DART'
-          import 'package:flutter/material.dart';
-          void main() => runApp(const MyApp());
-          class MyApp extends StatelessWidget {
-            const MyApp({super.key});
-            @override
-            Widget build(BuildContext context) {
-              return MaterialApp(
-                debugShowCheckedModeBanner: false,
-                theme: ThemeData.dark(),
-                home: Scaffold(
-                  backgroundColor: const Color(0xFF0F0F0F),
-                  body: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.lock_outline, size: 80, color: Color(0xFF00FF88)),
-                        const SizedBox(height: 20),
-                        const Text("SecureCrypt.com", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-                        const SizedBox(height: 10),
-                        const Text("BUILD VERDE OK", style: TextStyle(color: Color(0xFF00FF88))),
-                        const SizedBox(height: 30),
-                        ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FF88), foregroundColor: Colors.black),
-                          child: const Text("SBLOCCA"),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-          }
-          DART
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/g' android/app/build.gradle
+          sed -i 's/minSdk flutter.minSdkVersion/minSdk 23/g' android/app/build.gradle
+          sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle
+          sed -i '/<application/i \ <uses-permission android:name="android.permission.RECORD_AUDIO" />' android/app/src/main/AndroidManifest.xml
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
