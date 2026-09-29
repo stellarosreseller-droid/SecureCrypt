@@ -10,14 +10,13 @@ jobs:
           channel: 'stable'
       - name: Get deps
         run: flutter pub get
-      - name: Fix Android v1 embedding
+      - name: Recreate android folder to fix v1 embedding
         run: |
-          if [! -d "android" ]; then
-            echo "Android folder missing, recreating..."
-            flutter create. --platforms=android --org com.example
-          fi
-          sed -i 's/android:value="1"/android:value="2"/g' android/app/src/main/AndroidManifest.xml || true
-          rm -rf android/app/src/main/java/io/flutter/app || true
+          echo "Deleting old android..."
+          rm -rf android
+          echo "Recreating with v2 embedding..."
+          flutter create. --platforms=android --org com.example
+          echo "Android recreated"
       - name: Set custom icon
         run: |
           if [ -f assets/icon.png ]; then
@@ -26,7 +25,7 @@ jobs:
               cp assets/icon.png "$d/ic_launcher.png"
               cp assets/icon.png "$d/ic_launcher_round.png"
             done
-            echo "Custom icon applied"
+            echo "Icon applied"
           fi
       - name: Patch record_android
         run: |
