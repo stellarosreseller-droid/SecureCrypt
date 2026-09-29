@@ -1,0 +1,49 @@
+name: build
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - name: Get deps
+        run: flutter pub get
+      - name: Fix Android v1 embedding (ricrea android)
+        run: |
+          if [! -f android/app/src/main/AndroidManifest.xml ]; then
+            echo "Cartella android mancante, la ricreo..."
+            flutter create. --platforms=android
+          else
+            echo "Fix v1 -> v2"
+            sed -i 's/android:value="1"/android:value="2"/' android/app/src/main/AndroidManifest.xml || true
+            # Rimuove vecchi import v1 se ci sono
+            find android -name "MainActivity.java" -exec sh -c 'echo "package com.example.securecrypt; import io.flutter.embedding.android.FlutterActivity; public class MainActivity extends FlutterActivity {}" > "$1"' _ {} \; || true
+            find android -name "MainActivity.kt" -exec sh -c 'echo "package com.example.securecrypt; import io.flutter.embedding.android.FlutterActivity; class MainActivity: FlutterActivity()" > "$1"' _ {} \; || true
+          fi
+      - name: Set custom icon if exists
+        run: |
+          if [ -f assets/icon.png ]; then
+            for d in android/app/src/main/res/mipmap-*; do
+              mkdir -p "$d"
+              cp assets/icon.png "$d/ic_launcher.png" || true
+              cp assets/icon.png "$d/ic_launcher_round.png" || true
+            done
+            echo "Custom icon applied"
+          fi
+      - name: Patch record_android
+        run: |
+          FILE=$(find ~/.pub-cache -path "*record_android-*/android/build.gradle" | head -n 1)
+          if [ -f "$FILE" ]; then
+            sed -i 's/namespace.*//' "$FILE" || true
+            sed -i 's/compileSdkVersion.*/compileSdkVersion 34/' "$FILE" || true
+            sed -i 's/compileSdk.*/compileSdk 34/' "$FILE" || true
+            sed -i 's/minSdkVersion.*/minSdkVersion 21/' "$FILE" || true
+          fi
+      - name: Build APK
+        run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SecureCrypt-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
