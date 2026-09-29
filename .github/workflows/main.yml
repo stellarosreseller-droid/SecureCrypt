@@ -14,7 +14,7 @@ jobs:
         run: |
           rm -rf android
           flutter create /tmp/f --project-name securecrypt --org com.securecrypt.app --platforms android
-          mv /tmp/f/android./
+          mv /tmp/f/android.
           ls android/app/
 
       - name: Fix Android minSdk for record
@@ -28,7 +28,6 @@ jobs:
             sed -i 's/flutter.minSdkVersion/23/g' android/app/build.gradle.kts
           fi
           sed -i '/<application/i \ <uses-permission android:name="android.permission.RECORD_AUDIO" \/>' android/app/src/main/AndroidManifest.xml
-          grep -n "minSdk" android/app/build.gradle* || true
 
       - run: flutter pub get
       - run: flutter build apk --release
