@@ -15,18 +15,24 @@ jobs:
           rm -rf android
           flutter create /tmp/f --project-name securecrypt --org com.securecrypt.app --platforms android
           cp -r /tmp/f/android $PWD
-          echo "Created with:"
-          grep -r "kotlin" android/settings.gradle* || true
+          ls -l android/
 
       - name: Force Kotlin 1.9.22 everywhere
         run: |
-          sed -i "s/1.7.10/1.9.22/g; s/1.8.10/1.9.22/g; s/1.8.22/1.9.22/g" android/settings.gradle.kts
-          sed -i "s/1.7.10/1.9.22/g; s/1.8.10/1.9.22/g; s/1.8.22/1.9.22/g" android/settings.gradle || true
-          sed -i "s/1.7.10/1.9.22/g; s/1.8.10/1.9.22/g" android/build.gradle.kts || true
-          sed -i "s/1.7.10/1.9.22/g; s/1.8.10/1.9.22/g" android/build.gradle || true
-          sed -i "s/flutter.minSdkVersion/23/g" android/app/build.gradle.kts || true
-          sed -i "s/flutter.minSdkVersion/23/g" android/app/build.gradle || true
-          cat android/settings.gradle.kts | grep kotlin
+          for FILE in android/settings.gradle android/settings.gradle.kts android/build.gradle android/build.gradle.kts android/app/build.gradle android/app/build.gradle.kts; do
+            if [ -f "$FILE" ]; then
+              echo "Patching $FILE"
+              sed -i "s/1.7.10/1.9.22/g" "$FILE" || true
+              sed -i "s/1.8.10/1.9.22/g" "$FILE" || true
+              sed -i "s/1.8.22/1.9.22/g" "$FILE" || true
+              sed -i "s/1.9.10/1.9.22/g" "$FILE" || true
+              sed -i "s/flutter.minSdkVersion/23/g" "$FILE" || true
+              sed -i "s/minSdkVersion 16/minSdkVersion 23/g" "$FILE" || true
+              sed -i "s/minSdk = 16/minSdk = 23/g" "$FILE" || true
+            fi
+          done
+          echo "--- After patch ---"
+          cat android/settings.gradle 2>/dev/null | grep kotlin || cat android/settings.gradle.kts 2>/dev/null | grep kotlin || true
 
       - run: flutter pub get
       - run: flutter clean
